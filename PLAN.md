@@ -8,9 +8,9 @@
 
 ## Status snapshot
 
-- **Current phase:** Phase 0 — Foundations (not started)
-- **Last completed:** Decisions D1–D6 agreed
-- **Next up:** Phase 0.2 — repo + tooling setup
+- **Current phase:** Phase 0 — Foundations (almost complete)
+- **Last completed:** Phase 0.3 Firebase emulators confirmed working
+- **Next up:** Expo Go device test on iPhone, then Vercel connection
 - **Blocked on:** Nothing
 
 ---
@@ -212,49 +212,59 @@ Firebase project up.
 
 ### 0.2 — Repo + tooling
 
-- [ ] `git init` in `D:\Receipto-2026\`. Add `.gitignore` (Node, Expo,
+- [x] `git init` in `D:\Receipto-2026\`. Add `.gitignore` (Node, Expo,
       macOS, Firebase, EAS, env files).
-- [ ] Initial commit of `PLAN.md` + `Starting point/`.
-- [ ] Add `README.md` with one-paragraph description and a "How to run"
+- [x] Initial commit of `PLAN.md` + `Starting point/`.
+- [x] Add `README.md` with one-paragraph description and a "How to run"
       section we'll fill in.
-- [ ] Set up pnpm workspace at root (`pnpm-workspace.yaml`) listing
+- [x] Set up pnpm workspace at root (`pnpm-workspace.yaml`) listing
       `apps/*`, `packages/*`, `firebase/functions`.
-- [ ] Add root `package.json` with shared scripts (`lint`, `typecheck`).
-- [ ] Add `prettier`, `eslint` (typescript-eslint), shared configs at root.
+- [x] Add root `package.json` with shared scripts (`lint`, `typecheck`).
+- [x] Add `prettier`, `eslint` (typescript-eslint), shared configs at root.
 - [ ] (Optional) GitHub repo — push private repo for remote backup.
 
 ### 0.3 — Firebase project
 
-- [ ] Create a Firebase project (free Spark plan to start; we'll move to
+- [x] Create a Firebase project (free Spark plan to start; we'll move to
       Blaze when Cloud Functions need it).
-- [ ] Enable Authentication (Email/password + Google).
-- [ ] Create the Firestore database in `europe-west2` (UK latency) in
+- [x] Enable Authentication (Email/password + Google).
+- [x] Create the Firestore database in `europe-west2` (UK latency) in
       Production mode (locked rules by default; we'll write rules next).
-- [ ] Create a Storage bucket in the same region.
-- [ ] Install Firebase CLI (`npm i -g firebase-tools`), `firebase login`,
+- [x] Create a Storage bucket in the same region.
+- [x] Install Firebase CLI (`npm i -g firebase-tools`), `firebase login`,
       `firebase init` choosing Firestore, Functions (TS), Storage,
       Emulators (Auth, Firestore, Functions, Storage).
-- [ ] Confirm `firebase emulators:start` works locally.
+
+> **Note:** `firebase init` failed due to stale auth token. Config files
+> were scaffolded manually instead (`firebase.json`, `.firebaserc`,
+> `firestore.rules`, `storage.rules`, `firestore.indexes.json`,
+> `functions/`). Run `firebase login --reauth` in a terminal to fix.
+
+- [x] Confirm `firebase emulators:start` works locally.
+
+> All emulators start cleanly: Auth :9099, Functions :5001,
+> Firestore :8180 (moved from 8080 — port conflict), Storage :9199,
+> Emulator UI at :4000.
 
 ### 0.4 — Mobile shell
 
-- [ ] `pnpm create expo-app apps/mobile` (TypeScript template, Expo Router).
-- [ ] Add NativeWind, `@tanstack/react-query`, `zustand`, `zod`,
-      `react-hook-form`, `@react-native-firebase/app`, `@react-native-firebase/auth`,
-      `@react-native-firebase/firestore`, `@react-native-firebase/storage`,
+- [x] `pnpm create expo-app apps/mobile` (TypeScript template, Expo Router).
+- [x] Add `@tanstack/react-query`, `zustand`, `zod`,
+      `react-hook-form`, `firebase` (JS SDK),
       `expo-secure-store`, `expo-image-picker`, `expo-camera`,
       `expo-haptics`, `react-native-svg`, `victory-native`.
-- [ ] Configure dark/light theme tokens matching the deck (greens
+
+> **Note:** NativeWind deferred — using plain StyleSheet + design tokens
+> in `constants/theme.ts` for now. Can add NativeWind later if useful.
+
+- [x] Configure dark/light theme tokens matching the deck (greens
       `#7FB582`, light bg `#EAF5EC`, etc — colours picked from screens).
-- [ ] Set bundle id `com.jordancartwright.receipto`, app name "Receipto"
-      in `app.config.ts`.
+- [x] Set bundle id `com.jordancartwright.receipto`, app name "Receipto"
+      in `app.json`.
 - [ ] **For now: install Expo Go on your iPhone from the App Store.**
       Run `pnpm start` on the laptop, scan the QR with the iPhone camera.
-      No paid account needed yet. (`@react-native-firebase/*` packages
-      will not work in Expo Go — see note below; we'll use the Firebase
-      JS SDK during the Expo Go phases and switch to RN Firebase when we
-      build a custom dev client in Phase 4.)
-- [ ] Initial choice for Phases 0–3: use the **Firebase JS SDK** (`firebase` package, the modular v9+ API) so Expo Go works. Wrap it in `src/lib/firebase.ts` so we can swap to RN Firebase later without touching call sites.
+      No paid account needed yet.
+- [x] Initial choice for Phases 0–3: use the **Firebase JS SDK** (`firebase` package, the modular v9+ API) so Expo Go works. Wrap it in `src/lib/firebase.ts` so we can swap to RN Firebase later without touching call sites.
 - [ ] Confirm the app opens in Expo Go and shows a "Hello Receipto" screen.
 
 > **Why Firebase JS SDK first, RN Firebase later?** RN Firebase needs
@@ -264,14 +274,14 @@ Firebase project up.
 
 ### 0.5 — Shared types package
 
-- [ ] Create `packages/shared` with zod schemas for `Receipt`,
+- [x] Create `packages/shared` with zod schemas for `Receipt`,
       `ReceiptItem`, `Category`, `CanonicalItem`. Used by mobile, web,
       and cloud functions.
 
 ### 0.6 — Web shell on Vercel
 
-- [ ] `pnpm create next-app apps/web --ts --tailwind --app --no-src-dir`
-- [ ] Hello-world landing page.
+- [x] `pnpm create next-app apps/web --ts --tailwind --app`
+- [x] Hello-world landing page. (marketing page + /privacy + /terms)
 - [ ] Connect repo to Vercel; auto-deploy on push.
 - [ ] Buy/connect a domain (optional now, mandatory before App Store
       submission for the privacy policy URL — `receipto.app` if available,

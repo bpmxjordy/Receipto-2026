@@ -68,3 +68,6 @@ coverage/
 # Misc
 *.log
 .turbo/
+
+# Claude Code (per-machine settings)
+.claude/

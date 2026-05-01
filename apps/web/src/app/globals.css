@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+:root {
+  /* Receipto brand greens */
+  --receipto-green-50: #EAF5EC;
+  --receipto-green-100: #D5EBDA;
+  --receipto-green-200: #B8DCC0;
+  --receipto-green-300: #7FB582;
+  --receipto-green-400: #6AA36E;
+  --receipto-green-500: #558A58;
+  --receipto-green-600: #3D6B40;
+
+  --background: #ffffff;
+  --foreground: #1A1A1A;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-receipto-50: var(--receipto-green-50);
+  --color-receipto-100: var(--receipto-green-100);
+  --color-receipto-200: var(--receipto-green-200);
+  --color-receipto-300: var(--receipto-green-300);
+  --color-receipto-400: var(--receipto-green-400);
+  --color-receipto-500: var(--receipto-green-500);
+  --color-receipto-600: var(--receipto-green-600);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0A0F0A;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+}
