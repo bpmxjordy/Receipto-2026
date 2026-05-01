@@ -1,0 +1,14 @@
+node_modules
+dist
+build
+.next
+.expo
+ios/Pods
+android/build
+firebase/functions/lib
+pnpm-lock.yaml
+Starting point
+
+# Hand-written docs — keep as authored
+PLAN.md
+pnpm-workspace.yaml
