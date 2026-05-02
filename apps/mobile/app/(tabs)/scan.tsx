@@ -1,68 +1,59 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
-import { Colors, TypeScale, Spacing } from '@/constants/theme';
+import { Screen, HeaderBar } from '@/components/ui';
+import { Colors, TypeScale, Spacing, Radii } from '@/constants/theme';
 
 /**
- * Scan tab — receipt capture flow (Phase 4 builds this out).
- * Placeholder for now.
+ * Scan tab — receipt capture flow.
+ * Phase 4 replaces the placeholder with a real camera + OCR.
  */
 export default function ScanScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Scan Receipt</Text>
+    <Screen scroll={false}>
+      <HeaderBar title="Scan Receipt" showAvatar={false} />
 
       <View style={styles.cameraPlaceholder}>
-        <View style={styles.cameraIcon}>
-          <Text style={styles.cameraEmoji}>📷</Text>
+        <View style={styles.cameraIconCircle}>
+          <Text style={styles.cameraIcon}>📷</Text>
         </View>
-        <Text style={styles.cameraLabel}>
-          Camera will appear here in Phase 4
-        </Text>
+        <Text style={styles.cameraTitle}>Capture a receipt</Text>
         <Text style={styles.cameraBody}>
-          Point your camera at a paper receipt to capture and categorise your
-          purchases.
+          Point your camera at a paper receipt to digitise your purchases.
         </Text>
       </View>
 
-      <View style={styles.optionsRow}>
-        <View style={styles.option}>
-          <Text style={styles.optionEmoji}>🖼️</Text>
-          <Text style={styles.optionLabel}>Library</Text>
-        </View>
-        <View style={styles.option}>
-          <Text style={styles.optionEmoji}>🔦</Text>
-          <Text style={styles.optionLabel}>Torch</Text>
-        </View>
+      <View style={styles.actionsRow}>
+        <TouchableOpacity style={styles.actionButton} activeOpacity={0.7}>
+          <Text style={styles.actionIcon}>🖼️</Text>
+          <Text style={styles.actionLabel}>Library</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.shutterButton} activeOpacity={0.7}>
+          <View style={styles.shutterInner} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.actionButton} activeOpacity={0.7}>
+          <Text style={styles.actionIcon}>🔦</Text>
+          <Text style={styles.actionLabel}>Torch</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg.primary,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: 60,
-  },
-  title: {
-    ...TypeScale.heading,
-    color: Colors.green[600],
-    marginBottom: Spacing.xxl,
-  },
   cameraPlaceholder: {
     flex: 1,
     backgroundColor: Colors.green[50],
-    borderRadius: 24,
+    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xl,
     borderWidth: 2,
     borderColor: Colors.green[200],
     borderStyle: 'dashed',
   },
-  cameraIcon: {
+  cameraIconCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
@@ -71,12 +62,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.lg,
   },
-  cameraEmoji: {
+  cameraIcon: {
     fontSize: 36,
   },
-  cameraLabel: {
-    ...TypeScale.label,
-    color: Colors.text.muted,
+  cameraTitle: {
+    ...TypeScale.subheading,
+    color: Colors.green[600],
     marginBottom: Spacing.sm,
   },
   cameraBody: {
@@ -85,27 +76,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: Spacing.xxl,
   },
-  optionsRow: {
+  actionsRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.xxl,
-    marginBottom: Spacing.xxl,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: Spacing.xl,
   },
-  option: {
+  actionButton: {
     alignItems: 'center',
     backgroundColor: Colors.green[50],
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-    borderRadius: 12,
+    borderRadius: Radii.md,
     borderWidth: 1,
     borderColor: Colors.green[200],
   },
-  optionEmoji: {
+  actionIcon: {
     fontSize: 24,
     marginBottom: Spacing.xs,
   },
-  optionLabel: {
+  actionLabel: {
     ...TypeScale.label,
     color: Colors.green[500],
+  },
+  shutterButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.green[300],
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: Colors.green[200],
+  },
+  shutterInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.green[400],
   },
 });

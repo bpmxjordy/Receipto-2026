@@ -1,40 +1,57 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
-import { Colors, TypeScale, Spacing } from '@/constants/theme';
+import { Screen, HeaderBar, Button } from '@/components/ui';
+import { Colors, TypeScale, Spacing, Radii } from '@/constants/theme';
+import { useAuthStore } from '@/src/stores/authStore';
 
 /**
- * Settings tab — profile, account, data, sign out (Phase 8).
- * Placeholder with sign-out button for Phase 3.
+ * Settings tab — profile, account, data export, sign out.
+ * Phase 8 will build out each sub-screen.
  */
 export default function SettingsScreen() {
+  const { logout, loading } = useAuthStore();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Settings</Text>
+    <Screen>
+      <HeaderBar title="Settings" showAvatar={false} />
 
       <View style={styles.section}>
         <SettingsItem label="Profile" icon="👤" />
         <SettingsItem label="Account" icon="🔒" />
         <SettingsItem label="Export Data" icon="📊" />
         <SettingsItem label="Items Needing Review" icon="📝" />
-        <SettingsItem label="About" icon="ℹ️" />
+        <SettingsItem label="About" icon="ℹ️" last />
       </View>
 
-      <TouchableOpacity
-        style={styles.signOutButton}
-        activeOpacity={0.7}
-        onPress={() => {
-          // Phase 3: sign out
-        }}>
-        <Text style={styles.signOutText}>Sign Out</Text>
-      </TouchableOpacity>
-    </View>
+      <View style={styles.signOutContainer}>
+        <Button
+          title="Sign Out"
+          variant="primary"
+          onPress={logout}
+          loading={loading}
+        />
+      </View>
+
+      <Text style={styles.version}>Receipto v0.1.0</Text>
+    </Screen>
   );
 }
 
-function SettingsItem({ label, icon }: { label: string; icon: string }) {
+function SettingsItem({
+  label,
+  icon,
+  last = false,
+}: {
+  label: string;
+  icon: string;
+  last?: boolean;
+}) {
   return (
-    <TouchableOpacity style={styles.item} activeOpacity={0.6}>
+    <TouchableOpacity
+      style={[styles.item, !last && styles.itemBorder]}
+      activeOpacity={0.6}
+    >
       <Text style={styles.itemIcon}>{icon}</Text>
       <Text style={styles.itemLabel}>{label}</Text>
       <Text style={styles.chevron}>›</Text>
@@ -43,20 +60,9 @@ function SettingsItem({ label, icon }: { label: string; icon: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg.primary,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: 60,
-  },
-  title: {
-    ...TypeScale.heading,
-    color: Colors.green[600],
-    marginBottom: Spacing.xxl,
-  },
   section: {
     backgroundColor: Colors.green[50],
-    borderRadius: 16,
+    borderRadius: Radii.lg,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.green[200],
@@ -66,6 +72,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.lg,
+  },
+  itemBorder: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.green[200],
   },
@@ -82,16 +90,13 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: Colors.text.muted,
   },
-  signOutButton: {
+  signOutContainer: {
     marginTop: Spacing.xxl,
-    backgroundColor: Colors.green[300],
-    borderRadius: 12,
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
   },
-  signOutText: {
-    ...TypeScale.body,
-    color: Colors.text.inverse,
-    fontWeight: '600',
+  version: {
+    ...TypeScale.caption,
+    color: Colors.text.muted,
+    textAlign: 'center',
+    marginTop: Spacing.xl,
   },
 });

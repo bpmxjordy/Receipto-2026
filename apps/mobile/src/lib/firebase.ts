@@ -23,12 +23,13 @@ import { getStorage } from 'firebase/storage';
 // TODO: Replace with your actual Firebase config from the console.
 // Firebase Console → Project Settings → General → Your apps → Web app
 const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'receipto-2026.firebaseapp.com',
-  projectId: 'receipto-2026',
-  storageBucket: 'receipto-2026.firebasestorage.app',
-  messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
-  appId: 'YOUR_APP_ID',
+  apiKey: "AIzaSyBZF5ANzIYa9TbHvv6tqRPCNgizRSB6cNY",
+  authDomain: "receipto-2026.firebaseapp.com",
+  projectId: "receipto-2026",
+  storageBucket: "receipto-2026.firebasestorage.app",
+  messagingSenderId: "1049597990347",
+  appId: "1:1049597990347:web:7fd786541103db22c5d24e",
+  measurementId: "G-6NQJNEWC1R"
 };
 
 // Initialise only once (important for hot reload)
