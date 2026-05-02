@@ -8,7 +8,7 @@
  *   4. Navigate to the review screen with the parsed data
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -21,11 +21,20 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { Screen, HeaderBar, Button } from '@/components/ui';
 import { Colors, TypeScale, Spacing, Radii } from '@/constants/theme';
-import { recognizeText } from '@/modules/ocr';
 import { parseReceipt } from '@/src/features/receipts/parseReceipt';
+
+// Lazy-import the OCR module — it may not be available if the native
+// module hasn't been compiled into the dev client yet.
+let recognizeText: ((uri: string) => Promise<import('@/modules/ocr').OcrBlock[]>) | null = null;
+try {
+  recognizeText = require('@/modules/ocr').recognizeText;
+} catch {
+  console.warn('OCR module not available — native module not compiled in.');
+}
 
 export default function ScanScreen() {
   const router = useRouter();
@@ -34,11 +43,24 @@ export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [processing, setProcessing] = useState(false);
   const [torch, setTorch] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+
+  // Only mount camera when tab is focused (prevents background camera issues)
+  const [isFocused, setIsFocused] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      return () => {
+        setIsFocused(false);
+        setTorch(false);
+      };
+    }, []),
+  );
 
   // ── Camera capture ──
 
   const handleCapture = async () => {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current || !cameraReady) return;
 
     setProcessing(true);
     try {
@@ -85,12 +107,20 @@ export default function ScanScreen() {
   // ── OCR + parse + navigate ──
 
   const processImage = async (imageUri: string) => {
+    if (!recognizeText) {
+      Alert.alert(
+        'OCR not available',
+        'The OCR module is not compiled into this build. Rebuild the app with `npx expo prebuild --platform ios --clean` then `npx expo run:ios --device`.',
+      );
+      return;
+    }
+
     const blocks = await recognizeText(imageUri);
 
     if (blocks.length === 0) {
       Alert.alert(
         'No text found',
-        'We couldn’t detect any text in that image. Try taking the photo again with better lighting.',
+        "We couldn't detect any text in that image. Try taking the photo again with better lighting.",
       );
       return;
     }
@@ -100,7 +130,7 @@ export default function ScanScreen() {
     if (parsed.items.length === 0) {
       Alert.alert(
         'No items found',
-        'We detected text but couldn’t find any receipt items. Make sure the full receipt is visible.',
+        "We detected text but couldn't find any receipt items. Make sure the full receipt is visible.",
       );
       return;
     }
@@ -168,25 +198,32 @@ export default function ScanScreen() {
         </View>
       )}
 
-      {/* Camera preview */}
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing="back"
-        enableTorch={torch}
-      >
-        {/* Viewfinder guide */}
-        <View style={styles.viewfinder}>
-          <View style={[styles.corner, styles.cornerTL]} />
-          <View style={[styles.corner, styles.cornerTR]} />
-          <View style={[styles.corner, styles.cornerBL]} />
-          <View style={[styles.corner, styles.cornerBR]} />
-        </View>
+      {/* Camera preview — only mount when tab is focused */}
+      {isFocused ? (
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing="back"
+          enableTorch={torch}
+          onCameraReady={() => setCameraReady(true)}
+        >
+          {/* Viewfinder guide */}
+          <View style={styles.viewfinder}>
+            <View style={[styles.corner, styles.cornerTL]} />
+            <View style={[styles.corner, styles.cornerTR]} />
+            <View style={[styles.corner, styles.cornerBL]} />
+            <View style={[styles.corner, styles.cornerBR]} />
+          </View>
 
-        <Text style={styles.hint}>
-          Position the receipt within the frame
-        </Text>
-      </CameraView>
+          <Text style={styles.hint}>
+            Position the receipt within the frame
+          </Text>
+        </CameraView>
+      ) : (
+        <View style={[styles.camera, styles.cameraPlaceholder]}>
+          <ActivityIndicator size="large" color={Colors.green[300]} />
+        </View>
+      )}
 
       {/* Bottom controls */}
       <View style={styles.controls}>
@@ -204,7 +241,7 @@ export default function ScanScreen() {
           style={[styles.shutterButton, processing && styles.shutterDisabled]}
           activeOpacity={0.7}
           onPress={handleCapture}
-          disabled={processing}
+          disabled={processing || !cameraReady}
         >
           <View style={styles.shutterInner} />
         </TouchableOpacity>
@@ -262,6 +299,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     alignItems: 'center',
+  },
+  cameraPlaceholder: {
+    justifyContent: 'center',
+    backgroundColor: '#000',
   },
   viewfinder: {
     position: 'absolute',

@@ -85,6 +85,14 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
+            name="receipt/[id]"
+            options={{
+              title: 'Receipt',
+              headerShown: false,
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
             name="review"
             options={{
               presentation: 'modal',

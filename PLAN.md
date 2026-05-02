@@ -8,10 +8,10 @@
 
 ## Status snapshot
 
-- **Current phase:** Phase 4 in progress
-- **Last completed:** Phase 4.4 — Receipt parser, OCR module, scan screen, review screen, save logic
-- **Next up:** Phase 4.6 — Simulated retailer tool, then end-to-end test on iPhone
-- **Blocked on:** Jordan testing the custom dev client build on Mac/iPhone
+- **Current phase:** Phase 4 code complete
+- **Last completed:** Phase 4.6 — All Phase 4 code done (OCR, scan, review, save, history, receipt detail, simulated retailer)
+- **Next up:** Phase 5 — Categorisation pipeline (Gemma 3n on-device)
+- **Blocked on:** Jordan building + testing custom dev client on Mac/iPhone
 
 ---
 
@@ -496,13 +496,22 @@ items, save to Firestore.
       `receipt_items` docs.
       > `src/features/receipts/saveReceipt.ts` — batch write with image upload.
 
-### 4.6 — Simulated retailer tool
+### 4.6 — Simulated retailer tool + history screens
 
-- [ ] Build the tool as a page in `apps/web/app/retailer/` on Vercel.
-- [ ] Form: pick a target user (by uid), retailer, date, line items.
-      Submits via a Cloud Function authenticated with a custom claim.
-- [ ] Generates a `receipts` doc with `source='simulated'` and triggers
-      the same categorisation path.
+- [x] `firebase/scripts/simulate-receipt.mjs` — Admin SDK script to seed
+      fake receipts for a given user UID.
+- [x] `firebase/scripts/seed-test-receipt.mjs` — JS SDK variant (needs
+      temporarily open rules or manual seeding).
+- [x] History screen (`app/(tabs)/history.tsx`) — live receipt list from
+      Firestore with pull-to-refresh, tap-to-open.
+- [x] Receipt detail screen (`app/receipt/[id].tsx`) — header card with
+      thumbnail + retailer + date, item list with category/CO₂ placeholders.
+- [x] `src/features/receipts/useReceipts.ts` — TanStack Query hook for
+      receipt list.
+- [x] `src/features/receipts/useReceiptDetail.ts` — TanStack Query hook
+      for single receipt + items subcollection.
+- [ ] (Deferred) Web-based retailer tool in `apps/web/` — will build when
+      we set up the Vercel site.
 
 **Acceptance criteria for Phase 4:** photograph a Tesco receipt on the
 iPhone, the review screen shows roughly correct items, hit save, the
