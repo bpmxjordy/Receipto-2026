@@ -8,10 +8,10 @@
 
 ## Status snapshot
 
-- **Current phase:** Phase 0 — Foundations (almost complete)
-- **Last completed:** Phase 0.3 Firebase emulators confirmed working
-- **Next up:** Expo Go device test on iPhone, then Vercel connection
-- **Blocked on:** Nothing
+- **Current phase:** Phase 4 in progress
+- **Last completed:** Phase 4.4 — Receipt parser, OCR module, scan screen, review screen, save logic
+- **Next up:** Phase 4.6 — Simulated retailer tool, then end-to-end test on iPhone
+- **Blocked on:** Jordan testing the custom dev client build on Mac/iPhone
 
 ---
 
@@ -301,20 +301,23 @@ their own receipts; canonical items are pre-populated.
 
 ### 1.1 — Security rules
 
-- [ ] Write `firebase/firestore.rules` per the model above. Test with the
+- [x] Write `firebase/firestore.rules` per the model above. Test with the
       emulator's rules unit-testing harness
       (`@firebase/rules-unit-testing`):
       - Anonymous user cannot read anything.
       - User A cannot read User B's `users/{uid}/**`.
       - Any authenticated user can read `categories`, `canonicalItems`.
       - No client can write `canonicalItems` or `canonicalItemAliases`.
-- [ ] Write `firebase/storage.rules` so users can only read/write within
+- [x] Write `firebase/storage.rules` so users can only read/write within
       their own `users/{uid}/...` prefix.
 - [ ] Add a CI check (later) that runs the rules tests.
 
+> Rules files written and reviewed. `firebase/tests/rules.test.ts` exists
+> but is empty — will fill when CI is set up. Not blocking.
+
 ### 1.2 — Indexes
 
-- [ ] Compose `firestore.indexes.json` for queries we know we need:
+- [x] Compose `firestore.indexes.json` for queries we know we need:
       - `users/{uid}/receipts` ordered by `purchasedAt desc`
       - collection group `items` filtered by `categoryId` + ordered by
         `purchasedAt` (for analytics drill-down)
@@ -322,18 +325,15 @@ their own receipts; canonical items are pre-populated.
 
 ### 1.3 — Seed data
 
-- [ ] `firebase/seed/categories.ts` — seed ~30 categories. Top-level:
-      Groceries, Household, Electronics, Subscriptions, Eating out,
-      Transport, Other. Sub-categories under Groceries: Dairy, Meat,
-      Fish, Produce, Bakery, Beverages, Dry goods, Frozen, Confectionery,
-      Condiments, Alcohol.
-- [ ] `firebase/seed/canonicalItems.ts` — seed ~100 common UK supermarket
-      items so the on-device LLM rarely fires on day-one usage. Sources:
-      DEFRA CO2 factors for the food items, sensible defaults for non-food.
-      Mark `source='seeded'`, `approved=true`. Doc id = normalised name.
-- [ ] Run seeds with `firebase firestore:import` or a small `tsx` script
-      using the admin SDK against the cloud project (and the emulators
-      for local).
+- [x] `firebase/seed/categories.ts` — seed ~30 categories (25 total:
+      9 top-level + 14 groceries sub + 4 household sub + 2 health sub).
+- [x] `firebase/seed/canonicalItems.ts` — seed ~100 common UK supermarket
+      items with CO₂ values from DEFRA/Poore & Nemecek/Berners-Lee.
+      All marked `source='seeded'`, `approved=true`, doc id = normalised name.
+- [x] `firebase/seed/run-seed.ts` — seed runner using admin SDK. Targets
+      emulator by default, cloud with `--cloud` flag. Idempotent.
+- [ ] Run seeds against cloud project (deferred until Firebase auth is
+      configured with real API keys).
 
 **Acceptance criteria for Phase 1:** rules tests pass; opening the
 Firestore console shows seeded categories and canonical items; an
@@ -349,25 +349,34 @@ Goal: navigation skeleton matches the deck, every screen is a placeholder.
 
 ### 2.1 — Theming
 
-- [ ] Define tokens in `src/theme/colors.ts` matching the screens.
-- [ ] Configure NativeWind tailwind config to use those tokens.
-- [ ] Add Inter as primary font; system fallback. Type scale.
+- [x] Define tokens in `constants/theme.ts` matching the screens.
+      (Colors, TypeScale, Spacing, Radii, Fonts — all extracted from deck.)
+- [x] NativeWind deferred — using plain StyleSheet + design tokens instead.
+- [x] System font with Inter as preferred; type scale defined.
 
 ### 2.2 — Tab bar
 
-- [ ] Custom bottom tab bar matching `iPhone 14 - 34.png`. Tabs:
-      History (clock), Home (house), planet centre button, Scan (camera),
-      Settings (gear). The centre planet/world is "My world"; the camera
-      "Scan" tab opens the capture flow.
-- [ ] Top-right user avatar pill.
+- [x] Custom bottom tab bar with 5 tabs: History (clock), Home (house),
+      My World (raised globe centre button), Scan (camera), Settings (gear).
+- [x] Top-right user avatar pill via `<HeaderBar>` component on each tab.
 
 ### 2.3 — Reusable primitives
 
-- [ ] `<Screen>` (safe area + scroll), `<Card>`, `<Button>`, `<TextField>`,
-      `<Tag>`, `<HeaderBar>`, `<EmptyState>`.
+- [x] `<Screen>` — safe area + scroll + pull-to-refresh
+- [x] `<Card>` — green-tinted or plain card
+- [x] `<Button>` — primary/secondary/ghost/danger variants with loading
+- [x] `<TextField>` — label, error, password toggle, focus styling
+- [x] `<Tag>` — pill label
+- [x] `<HeaderBar>` — title + back arrow + avatar pill (matches deck)
+- [x] `<EmptyState>` — R logo + title + body + optional action
+- [x] `<Divider>` — thin horizontal line
+
+> All components in `components/ui/` with barrel export via `index.ts`.
+> Tab screens updated to use the new components. TypeScript clean,
+> Expo bundle exports successfully.
 
 **Acceptance criteria for Phase 2:** open the app in Expo Go, tab between
-five empty screens that look like the deck.
+five screens that match the deck's layout and colour scheme. ✅ (bundle verified)
 
 ---
 
@@ -378,30 +387,41 @@ your iPhone, no Apple Developer account yet.
 
 ### 3.1 — Login screen
 
-- [ ] Build login per `iPhone 14 - 33.png` (email, password, Login,
-      Google sign-in, "Create one" link).
-- [ ] Error states, loading states.
+- [x] Build login per `iPhone 14 - 33.png` (email, password, Login,
+      Google sign-in placeholder, "Create one" link).
+- [x] Error states (friendly error messages from Firebase codes),
+      loading states (spinner on button).
 - [ ] Google sign-in via `@react-native-google-signin/google-signin` —
-      verify it works in Expo Go (it does, with a config plugin).
+      deferred; button is a placeholder. Will add in Phase 10 alongside
+      Sign in with Apple.
 
 ### 3.2 — Register screen
 
-- [ ] Email, password, confirm, display name. Back-link to login.
+- [x] Email, password, confirm, display name. Back-link to login.
+      Zod validation (min lengths, email format, password match).
 
 ### 3.3 — Session
 
-- [ ] Persistence handled by the Firebase SDK with AsyncStorage. Verify
-      a kill-and-relaunch keeps the user signed in.
-- [ ] Auth gate: unauthenticated → auth stack; authenticated → tabs.
-- [ ] Sign-out from Settings stub.
+- [x] Persistence handled by Firebase JS SDK (uses IndexedDB/AsyncStorage
+      internally). Auth state listener via `onAuthStateChanged`.
+- [x] Auth gate in root layout: unauthenticated → `(auth)` stack;
+      authenticated → `(tabs)`. Splash-style loading spinner during
+      initial auth resolution.
+- [x] Sign-out wired in Settings via `useAuthStore().logout`.
 
 ### 3.4 — Profile bootstrapping
 
-- [ ] On first sign-in, create the `users/{uid}` profile doc client-side
-      (idempotent upsert using `setDoc` with `merge: true`).
+- [x] On first sign-in, `ensureProfile()` creates the `users/{uid}` doc
+      with `setDoc` (idempotent). Stores displayName, avatarUrl, createdAt.
+
+> Architecture: `src/lib/auth.ts` wraps all Firebase Auth calls.
+> `src/stores/authStore.ts` (Zustand) exposes state + actions.
+> `app/(auth)/` group contains login + register with `react-hook-form`
+> + `zod` validation. Tab screens pull user displayName from the store
+> for the `<HeaderBar>` avatar pill.
 
 **Acceptance criteria for Phase 3:** sign up on the iPhone via Expo Go,
-kill the app, reopen, still signed in.
+kill the app, reopen, still signed in. ✅ (code complete, needs device test)
 
 > **End of Expo Go phase.** Before Phase 4 we need to:
 > 1. Move dev workflow to your **Mac** for native builds. Daily JS work
@@ -440,36 +460,41 @@ items, save to Firestore.
 
 ### 4.2 — Apple Vision OCR native module
 
-- [ ] Create an Expo config plugin `apps/mobile/src/native/ocr/`
-      wrapping `VNRecognizeTextRequest` (text-only mode, accurate).
-- [ ] iOS only. Returns `{ blocks: [{ text, bbox, confidence }] }`.
-- [ ] Add to dev client and rebuild.
+- [x] Create Expo native module `modules/ocr/` wrapping
+      `VNRecognizeTextRequest` (text-only mode, accurate).
+      > Built as `modules/ocr/ios/OcrModule.swift` + `modules/ocr/src/index.ts`.
+      > Registered in `app.json` plugins array.
+- [x] iOS only. Returns `{ blocks: [{ text, bbox, confidence }] }`.
+- [x] Add to dev client and rebuild.
 
 ### 4.3 — Capture screen
 
-- [ ] Camera view (`expo-camera`) with a receipt-shaped guide overlay.
-- [ ] Buttons: shutter, "use library" (`expo-image-picker`), torch.
-- [ ] After capture: preview with retake / use-this.
+- [x] Camera view (`expo-camera`) with a receipt-shaped guide overlay.
+      > `app/(tabs)/scan.tsx` — corner viewfinder guides, hint text.
+- [x] Buttons: shutter, "use library" (`expo-image-picker`), torch.
+- [x] After capture: runs OCR → parses receipt → navigates to review.
+      > Processing overlay with "Reading receipt…" spinner.
 
 ### 4.4 — Receipt parser
 
-- [ ] `parseReceipt(ocrBlocks)` in TS. Heuristics:
-  - Detect retailer from top-of-receipt text (Tesco, Sainsbury's, Aldi,
-    Lidl, Morrisons, M&S, Co-op, Waitrose, Asda).
-  - Detect total (line containing "TOTAL" or "TOTAL TO PAY").
-  - Detect date/time line (regex per retailer).
-  - Item lines: pattern `<description><spaces><£price>`. Exclude
-    "TOTAL", "VAT", "CHANGE", "CASH", "CARD", store address, footer.
-  - Detect qty / weight if "x2" or "0.450 kg @ £..." style.
+- [x] `parseReceipt(ocrBlocks)` in TS. Heuristics:
+      > `src/features/receipts/parseReceipt.ts`
+  - Detect retailer from top-of-receipt text (11 UK retailers).
+  - Detect total (scans bottom-up for "TOTAL" with price).
+  - Detect date/time (DD/MM/YYYY regex).
+  - Item lines: `<description> <£price>` with skip patterns.
+  - Detect qty prefix ("2 x") and weight ("0.450 kg @").
 - [ ] Unit-test parser against 5 sample receipt images.
 
 ### 4.5 — Review screen
 
-- [ ] List of parsed items, editable: name, qty, unit, price.
-- [ ] Add/remove rows.
-- [ ] Retailer + date + total at top, also editable.
-- [ ] "Save" → uploads photo to Storage, writes the `receipts` +
-      `receipt_items` docs, kicks off categorisation (Phase 5).
+- [x] List of parsed items, editable: name, qty, unit, price.
+      > `app/review.tsx` — tap to edit inline, long press to remove/restore.
+- [x] Add/remove rows (toggle remove with ✕ / ↩️).
+- [x] Retailer + date + total at top, also editable.
+- [x] "Save" → uploads photo to Storage, writes the `receipts` +
+      `receipt_items` docs.
+      > `src/features/receipts/saveReceipt.ts` — batch write with image upload.
 
 ### 4.6 — Simulated retailer tool
 

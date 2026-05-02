@@ -12,13 +12,19 @@
     "lint:fix": "eslint . --fix",
     "typecheck": "pnpm -r --if-present typecheck",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "seed": "npx tsx firebase/seed/run-seed.ts",
+    "seed:emulator": "cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8180 npx tsx firebase/seed/run-seed.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "cross-env": "^7.0.3",
     "eslint": "^9.17.0",
     "eslint-config-prettier": "^9.1.0",
+    "firebase-admin": "^13.0.0",
     "prettier": "^3.4.2",
+    "tsx": "^4.19.0",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.0"
   }

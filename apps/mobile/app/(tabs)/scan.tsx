@@ -1,86 +1,350 @@
-import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-
-import { Screen, HeaderBar } from '@/components/ui';
-import { Colors, TypeScale, Spacing, Radii } from '@/constants/theme';
-
 /**
- * Scan tab — receipt capture flow.
- * Phase 4 replaces the placeholder with a real camera + OCR.
+ * Scan tab — receipt capture via camera or photo library.
+ *
+ * Flow:
+ *   1. User taps shutter (camera) or Library (image picker)
+ *   2. We run OCR on the captured image
+ *   3. We parse the OCR blocks into structured receipt data
+ *   4. Navigate to the review screen with the parsed data
  */
+
+import React, { useState, useRef } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+
+import { Screen, HeaderBar, Button } from '@/components/ui';
+import { Colors, TypeScale, Spacing, Radii } from '@/constants/theme';
+import { recognizeText } from '@/modules/ocr';
+import { parseReceipt } from '@/src/features/receipts/parseReceipt';
+
 export default function ScanScreen() {
-  return (
-    <Screen scroll={false}>
-      <HeaderBar title="Scan Receipt" showAvatar={false} />
+  const router = useRouter();
+  const cameraRef = useRef<CameraView>(null);
 
-      <View style={styles.cameraPlaceholder}>
-        <View style={styles.cameraIconCircle}>
-          <Text style={styles.cameraIcon}>📷</Text>
+  const [permission, requestPermission] = useCameraPermissions();
+  const [processing, setProcessing] = useState(false);
+  const [torch, setTorch] = useState(false);
+
+  // ── Camera capture ──
+
+  const handleCapture = async () => {
+    if (!cameraRef.current) return;
+
+    setProcessing(true);
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+        skipProcessing: Platform.OS === 'android',
+      });
+
+      if (!photo?.uri) {
+        Alert.alert('Error', 'Failed to capture photo.');
+        return;
+      }
+
+      await processImage(photo.uri);
+    } catch (err) {
+      console.error('Capture error:', err);
+      Alert.alert('Error', 'Something went wrong capturing the photo.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // ── Library pick ──
+
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+
+    setProcessing(true);
+    try {
+      await processImage(result.assets[0].uri);
+    } catch (err) {
+      console.error('Library error:', err);
+      Alert.alert('Error', 'Something went wrong processing the image.');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // ── OCR + parse + navigate ──
+
+  const processImage = async (imageUri: string) => {
+    const blocks = await recognizeText(imageUri);
+
+    if (blocks.length === 0) {
+      Alert.alert(
+        'No text found',
+        'We couldn’t detect any text in that image. Try taking the photo again with better lighting.',
+      );
+      return;
+    }
+
+    const parsed = parseReceipt(blocks);
+
+    if (parsed.items.length === 0) {
+      Alert.alert(
+        'No items found',
+        'We detected text but couldn’t find any receipt items. Make sure the full receipt is visible.',
+      );
+      return;
+    }
+
+    // Navigate to review screen with parsed data
+    router.push({
+      pathname: '/review',
+      params: {
+        data: JSON.stringify(parsed),
+        imageUri,
+      },
+    });
+  };
+
+  // ── Permission not yet granted ──
+
+  if (!permission) {
+    return (
+      <Screen scroll={false}>
+        <HeaderBar title="Scan Receipt" showAvatar={false} />
+        <View style={styles.centred}>
+          <ActivityIndicator size="large" color={Colors.green[300]} />
         </View>
-        <Text style={styles.cameraTitle}>Capture a receipt</Text>
-        <Text style={styles.cameraBody}>
-          Point your camera at a paper receipt to digitise your purchases.
-        </Text>
-      </View>
+      </Screen>
+    );
+  }
 
-      <View style={styles.actionsRow}>
-        <TouchableOpacity style={styles.actionButton} activeOpacity={0.7}>
+  if (!permission.granted) {
+    return (
+      <Screen scroll={false}>
+        <HeaderBar title="Scan Receipt" showAvatar={false} />
+        <View style={styles.centred}>
+          <View style={styles.permissionIcon}>
+            <Text style={{ fontSize: 48 }}>📷</Text>
+          </View>
+          <Text style={styles.permissionTitle}>Camera access needed</Text>
+          <Text style={styles.permissionBody}>
+            Receipto needs camera access to photograph your receipts. You can
+            also import from your photo library instead.
+          </Text>
+          <View style={styles.permissionButtons}>
+            <Button title="Allow Camera" onPress={requestPermission} />
+            <Button
+              title="Pick from Library"
+              variant="secondary"
+              onPress={handlePickImage}
+            />
+          </View>
+        </View>
+      </Screen>
+    );
+  }
+
+  // ── Camera view ──
+
+  return (
+    <Screen scroll={false} horizontalPadding={0}>
+      {/* Processing overlay */}
+      {processing && (
+        <View style={styles.overlay}>
+          <View style={styles.overlayCard}>
+            <ActivityIndicator size="large" color={Colors.green[300]} />
+            <Text style={styles.overlayText}>Reading receipt…</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Camera preview */}
+      <CameraView
+        ref={cameraRef}
+        style={styles.camera}
+        facing="back"
+        enableTorch={torch}
+      >
+        {/* Viewfinder guide */}
+        <View style={styles.viewfinder}>
+          <View style={[styles.corner, styles.cornerTL]} />
+          <View style={[styles.corner, styles.cornerTR]} />
+          <View style={[styles.corner, styles.cornerBL]} />
+          <View style={[styles.corner, styles.cornerBR]} />
+        </View>
+
+        <Text style={styles.hint}>
+          Position the receipt within the frame
+        </Text>
+      </CameraView>
+
+      {/* Bottom controls */}
+      <View style={styles.controls}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          activeOpacity={0.7}
+          onPress={handlePickImage}
+          disabled={processing}
+        >
           <Text style={styles.actionIcon}>🖼️</Text>
           <Text style={styles.actionLabel}>Library</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.shutterButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={[styles.shutterButton, processing && styles.shutterDisabled]}
+          activeOpacity={0.7}
+          onPress={handleCapture}
+          disabled={processing}
+        >
           <View style={styles.shutterInner} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionButton} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={[styles.actionButton, torch && styles.actionActive]}
+          activeOpacity={0.7}
+          onPress={() => setTorch((t) => !t)}
+          disabled={processing}
+        >
           <Text style={styles.actionIcon}>🔦</Text>
-          <Text style={styles.actionLabel}>Torch</Text>
+          <Text style={styles.actionLabel}>
+            {torch ? 'Torch On' : 'Torch'}
+          </Text>
         </TouchableOpacity>
       </View>
     </Screen>
   );
 }
 
+// ── Styles ──
+
+const CORNER_SIZE = 24;
+const CORNER_WIDTH = 3;
+
 const styles = StyleSheet.create({
-  cameraPlaceholder: {
+  centred: {
     flex: 1,
-    backgroundColor: Colors.green[50],
-    borderRadius: Radii.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: Colors.green[200],
-    borderStyle: 'dashed',
+    paddingHorizontal: Spacing.xxl,
   },
-  cameraIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.green[100],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
+  permissionIcon: {
+    marginBottom: Spacing.xl,
   },
-  cameraIcon: {
-    fontSize: 36,
-  },
-  cameraTitle: {
+  permissionTitle: {
     ...TypeScale.subheading,
     color: Colors.green[600],
     marginBottom: Spacing.sm,
+    textAlign: 'center',
   },
-  cameraBody: {
+  permissionBody: {
     ...TypeScale.bodySmall,
     color: Colors.text.secondary,
     textAlign: 'center',
-    paddingHorizontal: Spacing.xxl,
+    marginBottom: Spacing.xl,
   },
-  actionsRow: {
+  permissionButtons: {
+    gap: Spacing.md,
+    width: '100%',
+  },
+
+  // Camera
+  camera: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  viewfinder: {
+    position: 'absolute',
+    top: '15%',
+    left: '8%',
+    right: '8%',
+    bottom: '25%',
+  },
+  corner: {
+    position: 'absolute',
+    width: CORNER_SIZE,
+    height: CORNER_SIZE,
+  },
+  cornerTL: {
+    top: 0,
+    left: 0,
+    borderTopWidth: CORNER_WIDTH,
+    borderLeftWidth: CORNER_WIDTH,
+    borderColor: Colors.green[300],
+    borderTopLeftRadius: 4,
+  },
+  cornerTR: {
+    top: 0,
+    right: 0,
+    borderTopWidth: CORNER_WIDTH,
+    borderRightWidth: CORNER_WIDTH,
+    borderColor: Colors.green[300],
+    borderTopRightRadius: 4,
+  },
+  cornerBL: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: CORNER_WIDTH,
+    borderLeftWidth: CORNER_WIDTH,
+    borderColor: Colors.green[300],
+    borderBottomLeftRadius: 4,
+  },
+  cornerBR: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: CORNER_WIDTH,
+    borderRightWidth: CORNER_WIDTH,
+    borderColor: Colors.green[300],
+    borderBottomRightRadius: 4,
+  },
+  hint: {
+    ...TypeScale.bodySmall,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: Spacing.xxl,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+
+  // Processing overlay
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overlayCard: {
+    backgroundColor: Colors.bg.primary,
+    borderRadius: Radii.lg,
+    padding: Spacing.xxl,
+    alignItems: 'center',
+    gap: Spacing.lg,
+  },
+  overlayText: {
+    ...TypeScale.body,
+    color: Colors.text.primary,
+  },
+
+  // Bottom controls
+  controls: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingVertical: Spacing.xl,
+    paddingBottom: Spacing.xxxl,
+    backgroundColor: Colors.bg.primary,
   },
   actionButton: {
     alignItems: 'center',
@@ -90,6 +354,10 @@ const styles = StyleSheet.create({
     borderRadius: Radii.md,
     borderWidth: 1,
     borderColor: Colors.green[200],
+  },
+  actionActive: {
+    backgroundColor: Colors.green[200],
+    borderColor: Colors.green[300],
   },
   actionIcon: {
     fontSize: 24,
@@ -108,6 +376,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 4,
     borderColor: Colors.green[200],
+  },
+  shutterDisabled: {
+    opacity: 0.5,
   },
   shutterInner: {
     width: 56,
