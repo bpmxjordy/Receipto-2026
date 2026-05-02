@@ -36,7 +36,20 @@
           "resizeMode": "contain",
           "backgroundColor": "#EAF5EC"
         }
-      ]
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Receipto needs camera access to photograph receipts."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Receipto needs photo library access to import receipt photos."
+        }
+      ],
+      "./modules/ocr"
     ],
     "experiments": {
       "typedRoutes": true,
