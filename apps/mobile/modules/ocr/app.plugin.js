@@ -1,11 +1,15 @@
 /**
- * Expo config plugin that adds OcrModule.swift directly to the
- * Xcode project. Bypasses autolinking entirely.
+ * Expo config plugin that:
+ * 1. Copies OcrModule.swift into the Xcode project
+ * 2. Patches the Podfile so use_expo_modules! finds our module
+ *
+ * This bypasses the broken autolinking for local modules.
  */
 
 const {
   withXcodeProject,
   withDangerousMod,
+  withPodfile,
 } = require('expo/config-plugins');
 const path = require('path');
 const fs = require('fs');
@@ -17,7 +21,7 @@ function withOcr(config) {
     (config) => {
       const projectRoot = config.modRequest.projectRoot;
       const iosDir = path.join(projectRoot, 'ios');
-      const appName = config.modResults?.name || 'Receipto';
+      const appName = 'Receipto';
 
       const srcFile = path.join(
         projectRoot,
@@ -30,7 +34,6 @@ function withOcr(config) {
       const destFile = path.join(destDir, 'OcrModule.swift');
 
       if (fs.existsSync(srcFile)) {
-        // Ensure destination directory exists
         if (!fs.existsSync(destDir)) {
           fs.mkdirSync(destDir, { recursive: true });
         }
@@ -44,13 +47,26 @@ function withOcr(config) {
     },
   ]);
 
-  // Step 2: Add the Swift file to the Xcode project
+  // Step 2: Patch Podfile to tell use_expo_modules! where to find our module
+  config = withPodfile(config, (config) => {
+    let podfile = config.modResults.contents;
+
+    // Add our modules directory to the autolinking search paths
+    podfile = podfile.replace(
+      'use_expo_modules!',
+      "use_expo_modules!(searchPaths: [File.join(__dir__, '..', 'modules')])"
+    );
+
+    config.modResults.contents = podfile;
+    console.log('  ✅ Patched Podfile with modules search path');
+    return config;
+  });
+
+  // Step 3: Add the Swift file to the Xcode project
   config = withXcodeProject(config, (config) => {
     const project = config.modResults;
     const appName = config.modRequest.projectName;
 
-    // Find the main app group
-    const mainGroup = project.getFirstProject().firstProject.mainGroup;
     const appGroupKey = Object.keys(project.hash.project.objects.PBXGroup)
       .find((key) => {
         const group = project.hash.project.objects.PBXGroup[key];
@@ -62,14 +78,12 @@ function withOcr(config) {
       });
 
     if (appGroupKey) {
-      // Check if already added
       const group = project.hash.project.objects.PBXGroup[appGroupKey];
-      const alreadyAdded = group.children.some(
-        (child) => {
-          const ref = project.hash.project.objects.PBXFileReference?.[child.value];
-          return ref && ref.path === 'OcrModule.swift';
-        }
-      );
+      const alreadyAdded = group.children.some((child) => {
+        const ref =
+          project.hash.project.objects.PBXFileReference?.[child.value];
+        return ref && ref.path === 'OcrModule.swift';
+      });
 
       if (!alreadyAdded) {
         project.addSourceFile(
@@ -80,7 +94,6 @@ function withOcr(config) {
         console.log('  ✅ Added OcrModule.swift to Xcode project');
       }
     } else {
-      // Fallback: add to root
       project.addSourceFile(appName + '/OcrModule.swift');
       console.log('  ✅ Added OcrModule.swift to Xcode project (root)');
     }

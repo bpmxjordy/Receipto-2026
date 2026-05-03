@@ -1,5 +1,8 @@
 {
-  "platforms": ["apple"],
+  "platforms": ["ios", "apple"],
+  "ios": {
+    "modules": ["OcrModule"]
+  },
   "apple": {
     "modules": ["OcrModule"]
   }
