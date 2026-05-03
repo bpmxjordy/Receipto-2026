@@ -29,11 +29,12 @@ import { parseReceipt } from '@/src/features/receipts/parseReceipt';
 
 // Lazy-import the OCR module — it may not be available if the native
 // module hasn't been compiled into the dev client yet.
-let recognizeText: ((uri: string) => Promise<import('@/modules/ocr').OcrBlock[]>) | null = null;
+let recognizeText: ((uri: string) => Promise<any[]>) | null = null;
 try {
-  recognizeText = require('@/modules/ocr').recognizeText;
-} catch {
-  console.warn('OCR module not available — native module not compiled in.');
+  const ocr = require('@receipto/ocr');
+  recognizeText = ocr.recognizeText;
+} catch (e) {
+  console.warn('OCR module not available:', e);
 }
 
 export default function ScanScreen() {
