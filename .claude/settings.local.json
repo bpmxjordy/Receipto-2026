@@ -11,7 +11,9 @@
       "Bash(pnpm typecheck *)",
       "Bash(npx tsc *)",
       "Bash(npx expo *)",
-      "Bash(pnpm add *)"
+      "Bash(pnpm add *)",
+      "WebSearch",
+      "WebFetch(domain:docs.expo.dev)"
     ]
   }
 }
