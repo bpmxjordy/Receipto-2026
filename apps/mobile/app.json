@@ -48,7 +48,8 @@
         {
           "photosPermission": "Receipto needs photo library access to import receipt photos."
         }
-      ]
+      ],
+      "./modules/ocr/app.plugin.js"
     ],
     "experiments": {
       "typedRoutes": true,

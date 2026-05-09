@@ -13,7 +13,9 @@
       "Bash(npx expo *)",
       "Bash(pnpm add *)",
       "WebSearch",
-      "WebFetch(domain:docs.expo.dev)"
+      "WebFetch(domain:docs.expo.dev)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:dev.to)"
     ]
   }
 }
