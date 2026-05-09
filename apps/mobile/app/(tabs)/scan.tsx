@@ -31,7 +31,7 @@ import { parseReceipt } from '@/src/features/receipts/parseReceipt';
 // module hasn't been compiled into the dev client yet.
 let recognizeText: ((uri: string) => Promise<any[]>) | null = null;
 try {
-  const ocr = require('@receipto/ocr');
+  const ocr = require('@/modules/ocr');
   recognizeText = ocr.recognizeText;
 } catch (e) {
   console.warn('OCR module not available:', e);
