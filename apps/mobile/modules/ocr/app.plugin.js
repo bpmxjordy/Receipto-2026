@@ -1,14 +1,13 @@
 /**
- * Config plugin that manually adds the OCR pod to the Podfile
- * since autolinking won't do it.
+ * Config plugin that copies OcrModule.swift into the Xcode project.
+ * Autolinking handles the pod registration via expo-module.config.json.
  */
 
-const { withPodfile, withDangerousMod } = require('expo/config-plugins');
+const { withDangerousMod } = require('expo/config-plugins');
 const path = require('path');
 const fs = require('fs');
 
 function withOcr(config) {
-  // Copy Swift file into the ios project
   config = withDangerousMod(config, [
     'ios',
     (config) => {
@@ -27,21 +26,6 @@ function withOcr(config) {
       return config;
     },
   ]);
-
-  // Add the pod to the Podfile
-  config = withPodfile(config, (config) => {
-    const podfile = config.modResults.contents;
-
-    if (!podfile.includes("pod 'Ocr'")) {
-      config.modResults.contents = podfile.replace(
-        "use_expo_modules!",
-        "use_expo_modules!\n  pod 'Ocr', :path => File.join(__dir__, '..', 'modules', 'ocr', 'ios')"
-      );
-      console.log('  ✅ Added Ocr pod to Podfile');
-    }
-
-    return config;
-  });
 
   return config;
 }
