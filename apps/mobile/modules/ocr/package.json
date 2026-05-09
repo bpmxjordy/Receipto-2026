@@ -1,11 +1,8 @@
 {
-  "name": "@receipto/ocr",
+  "name": "ocr",
   "version": "1.0.0",
+  "description": "Expo native module wrapping Apple Vision OCR",
   "main": "src/index.ts",
-  "peerDependencies": {
-    "expo": "*",
-    "expo-modules-core": "*",
-    "react": "*",
-    "react-native": "*"
-  }
+  "author": "Jordan Cartwright",
+  "license": "MIT"
 }
