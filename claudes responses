@@ -1,0 +1,98 @@
+This will scaffold modules/ocr/ with the exact structure Expo expects. Then replace the generated Swift file with our OCR code:
+
+cat > modules/ocr/ios/OcrModule.swift << 'SWIFT'
+import ExpoModulesCore
+import Vision
+import UIKit
+
+public class OcrModule: Module {
+  public func definition() -> ModuleDefinition {
+    Name("Ocr")
+
+    AsyncFunction("recognizeText") { (imageUri: String, promise: Promise) in
+      guard let url = URL(string: imageUri) else {
+        promise.reject("ERR_INVALID_URI", "Invalid image URI: \(imageUri)")
+        return
+      }
+
+      guard let imageData = try? Data(contentsOf: url),
+            let image = UIImage(data: imageData),
+            let cgImage = image.cgImage else {
+        promise.reject("ERR_LOAD_IMAGE", "Could not load image from URI")
+        return
+      }
+
+      let request = VNRecognizeTextRequest { request, error in
+        if let error = error {
+          promise.reject("ERR_OCR", "OCR failed: \(error.localizedDescription)")
+          return
+        }
+
+        guard let observations = request.results as? [VNRecognizedTextObservation] else {
+          promise.resolve([])
+          return
+        }
+
+        let blocks: [[String: Any]] = observations.compactMap { observation in
+          guard let candidate = observation.topCandidates(1).first else {
+            return nil
+          }
+
+          let bbox = observation.boundingBox
+          return [
+            "text": candidate.string,
+            "confidence": candidate.confidence,
+            "x": bbox.origin.x,
+            "y": bbox.origin.y,
+            "width": bbox.size.width,
+            "height": bbox.size.height,
+          ]
+        }
+
+        promise.resolve(blocks)
+      }
+
+      request.recognitionLevel = .accurate
+      request.usesLanguageCorrection = true
+      request.recognitionLanguages = ["en-GB", "en-US"]
+
+      let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+
+      DispatchQueue.global(qos: .userInitiated).async {
+        do {
+          try handler.perform([request])
+        } catch {
+          promise.reject("ERR_OCR", "OCR request failed: \(error.localizedDescription)")
+        }
+      }
+    }
+  }
+}
+SWIFT
+Then replace the TS entry:
+
+cat > modules/ocr/src/index.ts << 'TS'
+import { requireNativeModule } from 'expo-modules-core';
+
+export interface OcrBlock {
+  text: string;
+  confidence: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+const OcrNative = requireNativeModule('Ocr');
+
+export async function recognizeText(imageUri: string): Promise<OcrBlock[]> {
+  const blocks: OcrBlock[] = await OcrNative.recognizeText(imageUri);
+  return blocks.sort((a, b) => b.y - a.y);
+}
+TS
+Then rebuild:
+
+npx expo prebuild --platform ios --clean
+grep -i ocr ios/Podfile
+cd ios && pod install && cd ..
+open ios/Receipto.xcworkspace
